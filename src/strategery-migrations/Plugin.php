@@ -23,10 +23,10 @@ if (!defined('ST_MIGRATIONS_TEMPLATES'))
     define('ST_MIGRATIONS_TEMPLATES', ST_MIGRATIONS_BASE_PATH . '/templates');
 
 if (!defined('ST_MIGRATIONS_HELPERS_PATH'))
-    define('ST_MIGRATIONS_HELPERS_PATH', ST_MIGRATIONS_BASE_PATH . '/helpers');
+    define('ST_MIGRATIONS_HELPERS_PATH', ST_MIGRATIONS_LIB . '/Helpers');
 
 if (!defined('ST_MIGRATIONS_MODELS_PATH'))
-    define('ST_MIGRATIONS_MODELS_PATH', ST_MIGRATIONS_BASE_PATH . '/models');
+    define('ST_MIGRATIONS_MODELS_PATH', ST_MIGRATIONS_LIB . '/Models');
 
 if (!defined('ST_MIGRATIONS_DIR'))
     define('ST_MIGRATIONS_DIR', PLUGINDIR . '/strategery-migrations/migrations');

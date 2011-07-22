@@ -2,7 +2,11 @@
 
 class Strategery_Migrations_Core {
 
-    static protected $helpers = array();
+    static protected $cache = array();
+
+    const NS_BASE = 'Strategery_Migrations';
+    const NS_MODEL = 'Strategery_Migrations_Model';
+    const NS_HELPER = 'Strategery_Migrations_Helper';
 
     /**
      * Returns $wpdb
@@ -37,43 +41,93 @@ class Strategery_Migrations_Core {
         return ucfirst($result);
     }
 
-    protected function helper($type) {
-        if (!isset($this->helpers[$type])) {
-            $parts = explode('/', $type);
-            $underscore = array_pop($parts);
-            $class = $this->underscoreToClassName($underscore);
-            $parts[] = $class;
-            $className = 'Strategery_Migrations_Helper_' . $class;
-            if (!class_exists($className)) {
-                $path = path_join(ST_MIGRATIONS_HELPERS_PATH, implode('/', $parts) . '.php');
-                if ($realPath = realpath($path)) {
-                    require_once ST_MIGRATIONS_LIB . '/Helper.php';
-                    require_once $realPath;
-                } else {
-                    throw new Strategery_Migrations_Exception('Could not find helper for type "' . $type . ' at "' . $path . '"');
-                }
-            }
-            $this->helpers[$type] = new $className();
-        }
-        return $this->helpers[$type];
+    /**
+     * Receives a type and turns it into a class name under the given namespace
+     * @param string $type The class type (e.g., 'plugins/exclude_from_nav')
+     * @param string $ns Namespace, for example self::NS_MODEL
+     * @return string The full class name
+     */
+    protected function getClassNameFromType($type, $ns = '') {
+        //$type = 'plugins/foo_bar/baz_post'
+        //$ns = 'Strategery_Migrations_Helper'
+        $parts = explode('/', $type); //array('plugins', 'foo_bar', 'baz_post')
+        $cnParts = array_map(array($this, 'underscoreToClassName'), $parts); //array('Plugins', 'FooBar', 'BazPost')
+        if ($ns)
+            array_unshift($cnParts, $ns); //array('Strategery_Migrations_Helper', 'Plugins', 'FooBar', 'BazPost')
+        return implode('_', $cnParts); //'Strategery_Migrations_Helper_Plugins_FooBar_BazPost'
     }
 
-    protected function getModel($type, $data) {
-        $parts = explode('/', $type);
-        $underscore = array_pop($parts);
-        $class = $this->underscoreToClassName($underscore);
-        $className = 'Strategery_Migrations_Model_' . $class;
-        $parts[] = $class;
-        if (!class_exists($className)) {
-            $path = path_join(ST_MIGRATIONS_MODELS_PATH, implode('/', $parts) . '.php');
-            if ($realPath = realpath($path)) {
-                require_once ST_MIGRATIONS_LIB . '/Model.php';
-                require_once $realPath;
-            } else {
-                throw new Strategery_Migrations_Exception('Could not find model "' . $type . '" at ' . $path);
-            }
+    /**
+     * Returns the full path for the given class
+     * @param string $class The class name without namespace
+     * @param string $basePath The base path for the class type (path equivalent to namespace)
+     * @param string $suffix A suffix (e.g. file extension) to append to the path.
+     * @return string The full path
+     */
+    protected function getPathFromClass($class, $basePath = '', $suffix = '.php') {
+        $path = str_replace('_', '/', $class);
+        if ($basePath)
+            $path = rtrim($basePath, '/') . '/' . $path;
+        return $path . $suffix;
+    }
+
+    /**
+     * Autoloads and returns a class instance from a given type
+     * @param string $type The class type
+     * @param array $args Optional arguments that will be passed as array
+     * @return object The class instance 
+     */
+    protected function getClassInstance($type, $args = array()) {
+        $className = $this->getClassNameFromType($type);
+        $fullClassName = self::NS_BASE . '_' . $className;
+        if (!class_exists($fullClassName)) {
+            require_once $this->getPathFromClass($className, ST_MIGRATIONS_LIB);
         }
-        return new $className($data);
+        return new $fullClassName($args);
+    }
+    
+    /**
+     * Returns or creates a cached instance for a given class type
+     * @param string $type The class type
+     * @return object The class instance 
+     */
+    protected function getClassSingleton($type) {
+        if(!isset($this->cache[$type])) {
+            $this->cache[$type] = $this->getClassInstance($type);
+        }
+        return $this->cache[$type];
+    }
+
+    /**
+     * Returns a helper from the given type helper. Helpers behave as singletons.
+     * @param string $type The helper type
+     * @param array $args Optional arguments that will be passsed as an array
+     * @return Strategery_Migrations_Helper
+     */
+    protected function getHelper($type) {
+        require_once ST_MIGRATIONS_LIB . '/Helper.php';
+        $type = 'helper/' . $type;
+        return $this->getClassSingleton($type);
+    }
+
+    /**
+     * Returns an instance of the specified model. Wrapper for getClassInstance().
+     * @param string $type The model type
+     * @param mixed $data Optional data to be passed an argument
+     * @return Strategery_Migrations_Model 
+     */
+    protected function getModel($type, $data = array()) {
+        require_once ST_MIGRATIONS_LIB . '/Model.php';
+        return $this->getClassInstance('model/'.$type, $data);
+    }
+
+    /**
+     * Post wrapper for getModel()
+     * @param mixed $data Optional data to be passed an argument
+     * @return Strategery_Migrations_Model_Post
+     */
+    protected function getPost($data = array()) {
+        return $this->getModel('post', $data);
     }
 
 }

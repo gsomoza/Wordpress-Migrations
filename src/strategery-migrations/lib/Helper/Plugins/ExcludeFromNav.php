@@ -1,6 +1,6 @@
 <?php
 
-class Strategery_Migrations_Helper_ExcludeFromNav extends Strategery_Migrations_Helper {
+class Strategery_Migrations_Helper_Plugins_ExcludeFromNav extends Strategery_Migrations_Helper {
 
     public function exclude($pageId) {
         $this->log('[ExcludeFromNav::exclude] Excluding ' . $pageId . ' from nav ', false);
